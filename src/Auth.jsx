@@ -19,10 +19,41 @@ export default function Auth({ onLogin }) {
   const handleSignUp = async (e) => {
     e.preventDefault()
     setLoading(true)
-    const { error } = await supabase.auth.signUp({ email, password })
+
+    try {
+      // First try to sign in with the email to check if it exists
+      const { error: signInError } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password: 'dummy-password' // Use a dummy password for checking
+      })
+
+      // If there's no error or error is about wrong password, it means email exists
+      if (!signInError || signInError.message.includes('Invalid login credentials')) {
+        alert('This email is already registered. Please sign in instead.')
+        setLoading(false)
+        return
+      }
+
+      // If we get here, the email doesn't exist, so try to sign up
+      const { error: signUpError } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
+      })
+
+      if (signUpError) {
+        alert(signUpError.message)
+      } else {
+        alert('Check your email to confirm registration')
+      }
+    } catch (error) {
+      alert('An error occurred during sign up')
+      console.error('Sign up error:', error)
+    }
+
     setLoading(false)
-    if (error) alert(error.message)
-    else alert('Check your email to confirm registration')
   }
 
   return (
