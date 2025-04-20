@@ -20,37 +20,43 @@ export default function Auth({ onLogin }) {
     e.preventDefault()
     setLoading(true)
 
+    // Basic validation
+    if (!email || !password) {
+      alert('Please enter both email and password')
+      setLoading(false)
+      return
+    }
+
+    // Password validation
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters long')
+      setLoading(false)
+      return
+    }
+
     try {
-      // First try to sign in with the email to check if it exists
-      const { error: signInError } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password: 'dummy-password' // Use a dummy password for checking
-      })
-
-      // If there's no error or error is about wrong password, it means email exists
-      if (!signInError || signInError.message.includes('Invalid login credentials')) {
-        alert('This email is already registered. Please sign in instead.')
-        setLoading(false)
-        return
-      }
-
-      // If we get here, the email doesn't exist, so try to sign up
+      // Try to sign up directly
       const { error: signUpError } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
-          emailRedirectTo: window.location.origin
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       })
 
       if (signUpError) {
-        alert(signUpError.message)
+        console.error('Sign up error:', signUpError)
+        if (signUpError.message.includes('User already registered')) {
+          alert('This email is already registered. Please sign in instead.')
+        } else {
+          alert(signUpError.message || 'An error occurred during sign up')
+        }
       } else {
         alert('Check your email to confirm registration')
       }
     } catch (error) {
-      alert('An error occurred during sign up')
       console.error('Sign up error:', error)
+      alert('An error occurred during sign up. Please try again.')
     }
 
     setLoading(false)
